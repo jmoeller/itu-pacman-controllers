@@ -7,8 +7,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import pacman.controllers.Controller;
 import pacman.controllers.HumanController;
 import pacman.controllers.KeyBoardInput;
@@ -45,11 +51,15 @@ public class Executor
 	{
 		Executor exec=new Executor();
 
-		/*
+		int pop_size = 50;
+		int trials_per_run = 100;
+		int evolution_runs = 25;
+		int mutation_percentage = 5;
+		//exec.runEvolution(new Legacy2TheReckoning(), pop_size, trials_per_run, evolution_runs, mutation_percentage);
+		
 		//run multiple games in batch mode - good for testing.
-		int numTrials=10;
-		exec.runExperiment(new RandomPacMan(),new RandomGhosts(),numTrials);
-		 */
+		//int numTrials=10;
+		//exec.runExperiment(new pacman.entries.pacman.jumo.MyPacMan(),new Legacy2TheReckoning(),numTrials);
 		
 		/*
 		//run a game in synchronous mode: game waits until controllers respond.
@@ -62,7 +72,7 @@ public class Executor
 		//run the game in asynchronous mode.
 		boolean visual=true;
 //		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
-		exec.runGameTimed(new StarterPacMan(),new StarterGhosts(),visual);
+		exec.runGameTimed(new pacman.entries.pacman.jumo.MyPacMan(), new Legacy2TheReckoning(),visual);
 //		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
 		//*/
 		
@@ -71,7 +81,7 @@ public class Executor
 		//time limit of DELAY ms still applies.
 		boolean visual=true;
 		boolean fixedTime=false;
-		exec.runGameTimedSpeedOptimised(new RandomPacMan(),new RandomGhosts(),fixedTime,visual);
+		exec.runGameTimedSpeedOptimised(new pacman.entries.pacman.jumo.MyPacMan(),new Legacy2TheReckoning(),fixedTime,visual);
 		*/
 		
 		/*
@@ -98,11 +108,10 @@ public class Executor
     	double avgScore=0;
     	
     	Random rnd=new Random(0);
-		Game game;
 		
 		for(int i=0;i<trials;i++)
 		{
-			game=new Game(rnd.nextLong());
+			Game game=new Game(rnd.nextLong());
 			
 			while(!game.gameOver())
 			{
@@ -115,6 +124,210 @@ public class Executor
 		}
 		
 		System.out.println(avgScore/trials);
+    }
+    
+    private class Participant {
+    	public int[] genome;
+    	public double average_score;
+    	public int number_of_trials;
+    	
+    	public static final int NUMBER_OF_PARAMETERS = 15;
+    	public static final int MAXIMUM_ARGUMENT = 1000;
+    	
+    	public Participant() {
+    		this.genome = new int[NUMBER_OF_PARAMETERS];
+    		
+    		Random rnd = new Random();
+    		
+    		for (int i = 0; i < genome.length; i++) {
+    			genome[i] = rnd.nextInt(MAXIMUM_ARGUMENT);
+    		}
+    		
+    		number_of_trials = 0;
+    	}
+    	
+    	public Participant(int[] genome) {
+    		this.genome = genome;
+    		number_of_trials = 0;
+    	}
+    	
+    	public Participant mutate(int mutation_value) {
+    		int genome_copy[] = this.genome.clone();
+    		
+    		Random rnd = new Random();
+    		
+    		for (int i = 0; i < genome_copy.length; i++) {
+    			float percentage = (float)(rnd.nextInt(mutation_value) - mutation_value / 2) / 100.0f;
+    			genome_copy[i] = (int)(genome_copy[i] * (1.0f + percentage));
+    		}
+    		
+    		return new Participant(genome_copy);
+    	}
+    	
+    	public Participant crossoverWith(Participant other) {
+    		int genome_copy[] = new int[this.genome.length];
+    		
+    		for (int i = 0; i < genome_copy.length; i++) {
+    			if (i % 2 == 0) {
+    				genome_copy[i] = this.genome[i];
+    			} else {
+    				genome_copy[i] = other.genome[i];
+    			}
+    		}
+    		
+    		return new Participant(genome_copy);
+    	}
+    }
+    
+    private class ParticipantComparator implements Comparator<Participant> {
+    	@Override
+    	public int compare(Participant p1, Participant p2) {
+    		return Double.compare(-p1.average_score, -p2.average_score);
+    	}
+    }
+    
+    private static class GameTask implements Runnable {
+    	private Random rnd;
+    	private Controller<MOVE> pacManController;
+    	private Controller<EnumMap<GHOST,MOVE>> ghostController;
+    	
+    	public GameTask(Random rnd, Controller<MOVE> pacManController, Controller<EnumMap<GHOST,MOVE>> ghostController) {
+    		this.rnd = rnd;
+    		this.pacManController = pacManController;
+    		this.ghostController = ghostController;
+    	}
+    	
+    	public void run() {
+    		Game game = new Game(rnd.nextLong());
+			
+			while(!game.gameOver())
+			{
+		        game.advanceGame(
+		        		pacManController.getMove(game.copy(),System.currentTimeMillis()+DELAY),
+		        		ghostController.getMove(game.copy(),System.currentTimeMillis()+DELAY)
+		        );
+			}
+			
+			avgScore += game.getScore();
+    	}
+    }
+    
+    private static double avgScore;
+    
+    private double runExperimentAndGetAverageScore(Controller<MOVE> pacManController, Controller<EnumMap<GHOST,MOVE>> ghostController, int trials_per_run) {
+    	avgScore=0;
+    	
+    	Random rnd=new Random();
+		
+    	ExecutorService executor = Executors.newCachedThreadPool();
+    	
+		for(int i=0; i<trials_per_run; i++)
+		{
+			executor.execute(new GameTask(rnd, pacManController, ghostController));
+		}
+		
+		executor.shutdown();
+		
+		try {
+			executor.awaitTermination(30, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException e) {
+			System.out.println(e.getMessage());
+		}
+		
+		return avgScore / trials_per_run;
+    }
+    
+    private void evaluateAndSort(ArrayList<Participant> population, ParticipantComparator pc, Controller<EnumMap<GHOST,MOVE>> ghostController, int trials_per_run) {
+    	// Find the fitness of each participant
+    	for (int i = 0; i < population.size(); i++) {
+    		Participant p = population.get(i);
+    		    		
+    		System.out.print(".");
+    		
+			double avg_score = runExperimentAndGetAverageScore(new pacman.entries.pacman.jumo.MyPacMan(p.genome), ghostController, trials_per_run);
+			
+			p.average_score = (p.average_score * p.number_of_trials + avg_score) / (double)(p.number_of_trials + 1);
+			
+			p.number_of_trials += 1;
+		}
+		
+		// Sort the participants
+		Collections.sort(population, pc);
+		
+    	printTopPerformer(population);
+    }
+    
+    private void removeFromPopulation(ArrayList<Participant> al, int from, int count) {
+    	for (int i = from + count - 1; i >= from; i--) {
+    		if (al.size() < i - 1) {
+    			continue;
+    		}
+    		
+    		al.remove(i);
+    	}
+    }
+    
+    private void printTopPerformer(ArrayList<Participant> population) {
+    	Participant p = population.get(0);
+		System.out.println("Top performer: " + p.average_score + " with " + p.number_of_trials + " runs   [ " + ia2s(p.genome) + "]");
+		System.out.println(population.size());
+    }
+
+    public void runEvolution(Controller<EnumMap<GHOST,MOVE>> ghostController, int population_size, int trials_per_run, int evolution_cycles, int mutation_percentage)
+    {
+    	int kill_count = population_size / 5;
+    	int retain_count = population_size - kill_count;
+    	int mutate_count = kill_count / 5 * 2;
+    	int crossover_count = kill_count / 5;
+    	int new_count = kill_count - mutate_count - crossover_count;
+
+		ParticipantComparator pc = new ParticipantComparator();
+    	
+    	ArrayList<Participant> population = new ArrayList<Participant>(population_size);
+    	for (int i = 0; i < population_size; i++) {
+    		population.add(new Participant());
+    	}
+    	
+    	evaluateAndSort(population, pc, ghostController, trials_per_run);
+    	
+    	for (int evolution = 0; evolution < evolution_cycles; evolution++) {
+    		System.out.print(".");
+    		
+    		removeFromPopulation(population, retain_count, kill_count);
+    		
+    		// Add mutations of the top performers
+    		for (int i = 0; i < mutate_count; i++) {
+    			population.add( population.get(i).mutate(mutation_percentage) );
+    		}
+    		
+    		// Add crossovers from the top performers
+    		for (int i = 0; i < crossover_count; i++) {
+    			population.add( population.get(i * 2).crossoverWith(population.get(i * 2 + 1)) );
+    		}
+    		
+    		if (new_count >= 0) {
+    			for (int i = 0; i < new_count; i++) {
+    				population.add( new Participant() );
+    			}
+    		}
+    		else {
+    			population = new ArrayList<Participant>(population.subList(0, population_size));
+    		}
+    		
+    		// Evaluate the population
+    		evaluateAndSort(population, pc, ghostController, trials_per_run);
+    	}
+    }
+    
+    private String ia2s(int[] is) {
+    	String s = "";
+    	
+    	for (int i : is) {
+    		s += i + ", ";
+    	}
+    	
+    	return s;
     }
 	
 	/**
@@ -203,7 +416,11 @@ public class Executor
      * @param fixedTime Whether or not to wait until 40ms are up even if both controllers already responded
 	 * @param visual Indicates whether or not to use visuals
      */
-    public void runGameTimedSpeedOptimised(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,boolean fixedTime,boolean visual)
+    public void runGameTimedSpeedOptimised(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,boolean fixedTime,boolean visual) {
+    	runGameTimedSpeedOptimisedAndGetScore(pacManController, ghostController, fixedTime, visual);
+    }
+    
+    public int runGameTimedSpeedOptimisedAndGetScore(Controller<MOVE> pacManController,Controller<EnumMap<GHOST,MOVE>> ghostController,boolean fixedTime,boolean visual)
  	{
  		Game game=new Game(0);
  		
@@ -254,6 +471,8 @@ public class Executor
  		
  		pacManController.terminate();
  		ghostController.terminate();
+ 		
+ 		return game.getScore();
  	}
     
 	/**
