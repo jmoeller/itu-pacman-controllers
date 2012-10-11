@@ -28,6 +28,7 @@ import pacman.controllers.examples.RandomNonRevPacMan;
 import pacman.controllers.examples.RandomPacMan;
 import pacman.controllers.examples.StarterGhosts;
 import pacman.controllers.examples.StarterPacMan;
+import pacman.entries.pacman.jumoNewFSM.JumoNewFSM;
 import pacman.game.Game;
 import pacman.game.GameView;
 
@@ -53,9 +54,9 @@ public class Executor
 
 		int pop_size = 50;
 		int trials_per_run = 100;
-		int evolution_runs = 25;
-		int mutation_percentage = 5;
-		//exec.runEvolution(new Legacy2TheReckoning(), pop_size, trials_per_run, evolution_runs, mutation_percentage);
+		int evolution_runs = 100;
+		int mutation_percentage = 20;
+		exec.runEvolution(new StarterGhosts(), pop_size, trials_per_run, evolution_runs, mutation_percentage);
 		
 		//run multiple games in batch mode - good for testing.
 		//int numTrials=10;
@@ -72,7 +73,7 @@ public class Executor
 		//run the game in asynchronous mode.
 		boolean visual=true;
 //		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
-		exec.runGameTimed(new pacman.entries.pacman.jumo.MyPacMan(), new Legacy2TheReckoning(),visual);
+		//exec.runGameTimed(new pacman.entries.pacman.jumoNewFSM.JumoNewFSM(), new Legacy2TheReckoning(),visual);
 //		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
 		//*/
 		
@@ -128,54 +129,88 @@ public class Executor
     
     private class Participant {
     	public int[] genome;
+    	public int[] priorities;
+    	public boolean calculated = false;
     	public double average_score;
     	public int number_of_trials;
-    	
-    	public static final int NUMBER_OF_PARAMETERS = 15;
-    	public static final int MAXIMUM_ARGUMENT = 1000;
-    	
+    	    	
     	public Participant() {
     		this.genome = new int[NUMBER_OF_PARAMETERS];
+    		this.priorities = new int[NUMBER_OF_STATES];
     		
     		Random rnd = new Random();
     		
     		for (int i = 0; i < genome.length; i++) {
-    			genome[i] = rnd.nextInt(MAXIMUM_ARGUMENT);
+    			int min = dummy.parameter_ranges.get(i).min;
+    			int max = dummy.parameter_ranges.get(i).max;
+    			
+    			genome[i] = rnd.nextInt(max - min) + min;
+    		}
+    		
+    		for (int i = 0; i < priorities.length; i++) {
+    			priorities[i] = rnd.nextInt(MAX_PRIORITY);
     		}
     		
     		number_of_trials = 0;
+    		calculated = false;
     	}
     	
-    	public Participant(int[] genome) {
+    	public Participant(int[] genome, int[] priorities) {
     		this.genome = genome;
+    		this.priorities = priorities;
+    		
     		number_of_trials = 0;
+    		calculated = false;
     	}
     	
     	public Participant mutate(int mutation_value) {
-    		int genome_copy[] = this.genome.clone();
+    		int[] genome_copy = new int[this.genome.length];
+    		int[] priorities_copy = new int[this.priorities.length];
     		
-    		Random rnd = new Random();
+    		Random rnd;
     		
     		for (int i = 0; i < genome_copy.length; i++) {
-    			float percentage = (float)(rnd.nextInt(mutation_value) - mutation_value / 2) / 100.0f;
-    			genome_copy[i] = (int)(genome_copy[i] * (1.0f + percentage));
+    			rnd = new Random();
+    			
+    			float percentage = (float)(rnd.nextInt(mutation_value) - mutation_value / 2.0f) / 100.0f;
+    			genome_copy[i] = (int)(this.genome[i] * (1.0f + percentage));
     		}
     		
-    		return new Participant(genome_copy);
+    		for (int i = 0; i < priorities_copy.length; i++) {
+    			rnd = new Random();
+    			
+    			float percentage = (float)(rnd.nextInt(mutation_value) - mutation_value / 2.0f) / 100.0f;
+    			priorities_copy[i] = (int)(this.priorities[i] * (1.0f + percentage));
+    		}
+    		
+    		return new Participant(genome_copy, priorities_copy);
     	}
     	
     	public Participant crossoverWith(Participant other) {
     		int genome_copy[] = new int[this.genome.length];
+    		int[] priorities_copy = new int[this.priorities.length];
     		
     		for (int i = 0; i < genome_copy.length; i++) {
-    			if (i % 2 == 0) {
+    			if (i % 3 == 0) {
     				genome_copy[i] = this.genome[i];
-    			} else {
+    			}
+    			else if (i % 3 == 1) {
     				genome_copy[i] = other.genome[i];
+    			}
+    			else {
+    				
     			}
     		}
     		
-    		return new Participant(genome_copy);
+    		for (int i = 0; i < priorities_copy.length; i++) {
+    			if (i % 2 == 0) {
+    				priorities_copy[i] = this.priorities[i];
+    			} else {
+    				priorities_copy[i] = other.priorities[i];
+    			}
+    		}
+    		
+    		return new Participant(genome_copy, priorities_copy);
     	}
     }
     
@@ -191,8 +226,8 @@ public class Executor
     	private Controller<MOVE> pacManController;
     	private Controller<EnumMap<GHOST,MOVE>> ghostController;
     	
-    	public GameTask(Random rnd, Controller<MOVE> pacManController, Controller<EnumMap<GHOST,MOVE>> ghostController) {
-    		this.rnd = rnd;
+    	public GameTask(Controller<MOVE> pacManController, Controller<EnumMap<GHOST,MOVE>> ghostController) {
+    		this.rnd = new Random();
     		this.pacManController = pacManController;
     		this.ghostController = ghostController;
     	}
@@ -217,13 +252,11 @@ public class Executor
     private double runExperimentAndGetAverageScore(Controller<MOVE> pacManController, Controller<EnumMap<GHOST,MOVE>> ghostController, int trials_per_run) {
     	avgScore=0;
     	
-    	Random rnd=new Random();
-		
     	ExecutorService executor = Executors.newCachedThreadPool();
     	
 		for(int i=0; i<trials_per_run; i++)
 		{
-			executor.execute(new GameTask(rnd, pacManController, ghostController));
+			executor.execute(new GameTask(pacManController, ghostController));
 		}
 		
 		executor.shutdown();
@@ -242,14 +275,20 @@ public class Executor
     	// Find the fitness of each participant
     	for (int i = 0; i < population.size(); i++) {
     		Participant p = population.get(i);
-    		    		
+
+			p.number_of_trials += 1;
+
+			//if (p.calculated) { continue; }
+			
     		System.out.print(".");
     		
-			double avg_score = runExperimentAndGetAverageScore(new pacman.entries.pacman.jumo.MyPacMan(p.genome), ghostController, trials_per_run);
+			double avg_score = runExperimentAndGetAverageScore(new pacman.entries.pacman.jumoNewFSM.JumoNewFSM(p.genome, p.priorities), ghostController, trials_per_run);
+    		//double avg_score = runExperimentAndGetAverageScore(new StarterPacMan(), ghostController, trials_per_run);
 			
-			p.average_score = (p.average_score * p.number_of_trials + avg_score) / (double)(p.number_of_trials + 1);
+			p.average_score = p.average_score * PAST_AVERAGE_WEIGHT + avg_score * (1.0f - PAST_AVERAGE_WEIGHT);
+//			p.average_score = avg_score;
 			
-			p.number_of_trials += 1;
+			p.calculated = true;
 		}
 		
 		// Sort the participants
@@ -258,7 +297,7 @@ public class Executor
     	printTopPerformer(population);
     }
     
-    private void removeFromPopulation(ArrayList<Participant> al, int from, int count) {
+    private ArrayList<Participant> removeFromPopulation(ArrayList<Participant> al, int from, int count) {
     	for (int i = from + count - 1; i >= from; i--) {
     		if (al.size() < i - 1) {
     			continue;
@@ -266,20 +305,30 @@ public class Executor
     		
     		al.remove(i);
     	}
+    	
+    	return al;
     }
     
     private void printTopPerformer(ArrayList<Participant> population) {
     	Participant p = population.get(0);
-		System.out.println("Top performer: " + p.average_score + " with " + p.number_of_trials + " runs   [ " + ia2s(p.genome) + "]");
-		System.out.println(population.size());
+		System.out.println("Top performer: " + p.average_score + " with " + p.number_of_trials + " runs   [ " + ia2s(p.genome) + "] [ " + ia2s(p.priorities) + "]");
     }
 
+    public int NUMBER_OF_PARAMETERS;
+    public int NUMBER_OF_STATES;
+    public JumoNewFSM dummy = new JumoNewFSM();
+    public int MAX_PRIORITY = 20;
+    public float PAST_AVERAGE_WEIGHT = 0.7f;
+    
     public void runEvolution(Controller<EnumMap<GHOST,MOVE>> ghostController, int population_size, int trials_per_run, int evolution_cycles, int mutation_percentage)
     {
-    	int kill_count = population_size / 5;
+    	NUMBER_OF_PARAMETERS = dummy.parameter_ranges.size();
+    	NUMBER_OF_STATES = dummy.available_states.size();
+    	
+    	int kill_count = population_size / 10;
     	int retain_count = population_size - kill_count;
-    	int mutate_count = kill_count / 5 * 2;
-    	int crossover_count = kill_count / 5;
+    	int mutate_count = kill_count / 10;
+    	int crossover_count = kill_count / 10;
     	int new_count = kill_count - mutate_count - crossover_count;
 
 		ParticipantComparator pc = new ParticipantComparator();
@@ -294,7 +343,7 @@ public class Executor
     	for (int evolution = 0; evolution < evolution_cycles; evolution++) {
     		System.out.print(".");
     		
-    		removeFromPopulation(population, retain_count, kill_count);
+    		population = removeFromPopulation(population, retain_count, kill_count);
     		
     		// Add mutations of the top performers
     		for (int i = 0; i < mutate_count; i++) {
