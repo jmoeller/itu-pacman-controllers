@@ -15,6 +15,7 @@ import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -32,9 +33,13 @@ import pacman.controllers.examples.RandomNonRevPacMan;
 import pacman.controllers.examples.RandomPacMan;
 import pacman.controllers.examples.StarterGhosts;
 import pacman.controllers.examples.StarterPacMan;
-import pacman.entries.pacman.jumofsm.JumoFSM;
+import pacman.entries.pacman.jumo.fsm.JumoFSM;
+import pacman.entries.pacman.jumo.mcts.JumoMCTS;
 import pacman.game.Game;
 import pacman.game.GameView;
+import pacman.game.Constants.GHOST;
+import pacman.game.Constants.MOVE;
+import pacman.game.internal.Ghost;
 
 import static pacman.game.Constants.*;
 
@@ -55,28 +60,44 @@ public class Executor
 	public static void main(String[] args)
 	{
 		Executor exec=new Executor();
-
-		//*
-		int population_size = 130;
-		int mutate_count = 30;
+		
+		/* Run an evolution to find a genome for the FSM controller.
+		 */
+		/*
+		int population_size = 100;
+		int mutate_count = 20;
 		int mutate_percentage = 25;
-		int crossover_count = 30; // Must be less than or equal to (popsize - mutate - new_count) / 2
-		int new_count = 30;
-		int runs = 200;
+		int crossover_count = 20; // Must be less than or equal to (popsize - mutate - new_count) / 2
+		int new_count = 20;
+		int runs = 100;
 		int games_per_run = 100;
 		
-		Calendar cal = Calendar.getInstance();
-        cal.getTime();
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        System.out.println( sdf.format(cal.getTime()) );
-		exec.runEvolution(new Legacy2TheReckoning(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
-		System.out.println( sdf.format(cal.getTime()) );
+		//exec.runEvolution(new Legacy2TheReckoning(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
+		//exec.runEvolution(new Legacy(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
+		//exec.runEvolution(new StarterGhosts(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
 		//*/
 		
 		/*
-		//run multiple games in batch mode - good for testing.
+		// Test the different controllers
 		int numTrials=1000;
-		exec.runExperiment(new JumoFSM(),new Legacy2TheReckoning(),numTrials);
+		Controller<EnumMap<GHOST,MOVE>> ghostsController = new Legacy2TheReckoning();
+		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_STARTER_GHOSTS), ghostsController, numTrials);
+		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY), ghostsController, numTrials);
+		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING), ghostsController, numTrials);
+		//exec.runExperiment(new StarterPacMan(),new StarterGhosts(), numTrials);
+
+		/*
+		double C = JumoMCTS.DEFAULT_C_VALUE;
+		if (args.length >= 1) {
+			C = Double.parseDouble(args[0]);
+			System.out.println("C: " + C);
+		}
+		
+		if (args.length >= 2) {
+			numTrials = Integer.parseInt(args[1]);
+		}
+		*/
+		//exec.runExperiment(new JumoMCTS(C), new StarterGhosts(), numTrials);
 		//*/
 		
 		/*
@@ -84,31 +105,35 @@ public class Executor
 		int delay=5;
 		boolean visual=true;
 		exec.runGame(new RandomPacMan(),new RandomGhosts(),visual,delay);
-  		*/
+  		//*/
 		
 		/*
 		//run the game in asynchronous mode.
 		boolean visual=true;
-//		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
-		exec.runGameTimed(new JumoFSM(),new Legacy2TheReckoning(),visual);
-//		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
+		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING),new Legacy2TheReckoning(),visual);
+		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY),new Legacy(),visual);
+		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_STARTER_GHOSTS),new StarterGhosts(),visual);
+		//exec.runGameTimed(new JumoMCTS(),new StarterGhosts(),visual);
 		//*/
 		
-		/*
+		//*
 		//run the game in asynchronous mode but advance as soon as both controllers are ready  - this is the mode of the competition.
 		//time limit of DELAY ms still applies.
 		boolean visual=true;
 		boolean fixedTime=false;
-		exec.runGameTimedSpeedOptimised(new JumoFSM(),new Legacy2TheReckoning(),fixedTime,visual);
+		exec.runGameTimedSpeedOptimised(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING),new Legacy2TheReckoning(),fixedTime,visual);
 		//*/
 		
 		/*
 		//run game in asynchronous mode and record it to file for replay at a later stage.
-		boolean visual=true;
-		String fileName="replay.txt";
-		exec.runGameTimedRecorded(new HumanController(new KeyBoardInput()),new RandomGhosts(),visual,fileName);
+		boolean visual = true;
+		String fileName = "replay";
+		String fileType = ".txt";
+		exec.runGameTimedRecorded(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING), new Legacy2TheReckoning(), visual, fileName + "1" + fileType);
+		exec.runGameTimedRecorded(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING), new Legacy2TheReckoning(), visual, fileName + "2" + fileType);
+		exec.runGameTimedRecorded(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING), new Legacy2TheReckoning(), visual, fileName + "3" + fileType);
 		//exec.replayGame(fileName,visual);
-		 */
+		//*/
 	}
 	
     /**
@@ -499,6 +524,9 @@ public class Executor
     }
     
     private float AVERAGE_SCORE;
+    private float PREVIOUS_SCORE_SIGNIFICANCE = 0.1f;
+    private int MAX_NUMBER_OF_THREADS = 10;
+	private ExecutorService executor = Executors.newFixedThreadPool(MAX_NUMBER_OF_THREADS);
     
     private LinkedList<Specimen> Evaluate(LinkedList<Specimen> population, Controller<EnumMap<GHOST,MOVE>> ghostController, int games_per_run) {
     	for (Specimen s : population) {
@@ -507,22 +535,31 @@ public class Executor
     		
     		AVERAGE_SCORE = 0;
         	
-    		ExecutorService executor = Executors.newCachedThreadPool();
+    		int games_left = games_per_run;
     		
-    		for(int i=0;i<games_per_run;i++)
-    		{
-    			executor.execute(new PacManTrial(s.genome, ghostController));
+    		while (games_left > 0) {
+    			int number_of_threads = Math.min(MAX_NUMBER_OF_THREADS, games_left);
+    			
+    			List<Callable<Object>> tasks = new ArrayList<Callable<Object>>(number_of_threads);
+    			for(int i=0;i<number_of_threads;i++)
+        		{
+        			try {
+						tasks.add(Executors.callable(new PacManTrial(s.genome, ghostController.getClass().newInstance())));
+					} catch (InstantiationException | IllegalAccessException e) {
+						e.printStackTrace();
+					}
+        		}
+    			
+    			try {
+					executor.invokeAll(tasks);
+					games_left -= number_of_threads;
+					
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}	
     		}
     		
-    		executor.shutdown();
-    		
-    		try {
-				executor.awaitTermination(30, TimeUnit.SECONDS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-    		
-    		s.average_score = s.average_score * 0.7f + (AVERAGE_SCORE / games_per_run) * 0.3f;
+    		s.average_score = s.average_score * PREVIOUS_SCORE_SIGNIFICANCE + (AVERAGE_SCORE / games_per_run) * (1.0f - PREVIOUS_SCORE_SIGNIFICANCE);
     		s.calculated = true;
     		s.trials += 1;
     	}

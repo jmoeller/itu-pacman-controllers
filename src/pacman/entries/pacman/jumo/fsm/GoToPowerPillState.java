@@ -1,8 +1,8 @@
-package pacman.entries.pacman.jumofsm;
+package pacman.entries.pacman.jumo.fsm;
 
 import java.util.NoSuchElementException;
 
-import pacman.entries.pacman.jumoutility.Utility;
+import pacman.entries.pacman.jumo.utility.Utility;
 import pacman.game.Game;
 import pacman.game.Constants.DM;
 

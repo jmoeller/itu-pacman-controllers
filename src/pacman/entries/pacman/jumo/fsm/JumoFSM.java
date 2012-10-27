@@ -1,4 +1,4 @@
-package pacman.entries.pacman.jumofsm;
+package pacman.entries.pacman.jumo.fsm;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -31,20 +31,38 @@ public class JumoFSM extends Controller<MOVE>
 	private int MAX_ITERATIONS;
 	private int iterations_on_path = 0;
 	
-	private static int[] DEFAULT_GENOME = new int[] {
-		157, 27, 97, 172,
-		82, 16, 172, 11,
-		106, 15, 170,
-		159, 179,
+	public static int[] DEFAULT_GENOME_LEGACY2_THERECKONING = {
+		149, 28, 129, 110,
+		32, 96, 105, 55,
+		31, 5, 117,
+		143, 165,
 		
-		56,
+		60,
 	};
 	
-	public static int GENOME_LENGTH = DEFAULT_GENOME.length;
+	public static int[] DEFAULT_GENOME_LEGACY = {
+		139, 5, 136, 149,
+		146, 76, 160, 67,
+		34, 15, 220,
+		47, 170,
+		
+		194,
+	};
+	
+	public static int[] DEFAULT_GENOME_STARTER_GHOSTS = {
+		238, 80, 13, 54,
+		163, 103, 182, 88,
+		46, 12, 125,
+		109, 128,
+		
+		137,
+	};
+	
+	public static int GENOME_LENGTH = DEFAULT_GENOME_LEGACY2_THERECKONING.length;
 	public static int MAX_GENOME_VALUE = 200;
 	
 	public JumoFSM() {
-		this(DEFAULT_GENOME);
+		this(DEFAULT_GENOME_LEGACY2_THERECKONING);
 	}
 	
 	public JumoFSM(int[] genome) {

@@ -1,4 +1,4 @@
-package pacman.entries.pacman.jumoutility;
+package pacman.entries.pacman.jumo.utility;
 
 import java.util.ArrayList;
 import java.util.Collections;

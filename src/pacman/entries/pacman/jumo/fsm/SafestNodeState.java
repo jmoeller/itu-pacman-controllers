@@ -1,4 +1,4 @@
-package pacman.entries.pacman.jumofsm;
+package pacman.entries.pacman.jumo.fsm;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import pacman.entries.pacman.jumoutility.Utility;
+import pacman.entries.pacman.jumo.utility.Utility;
 import pacman.game.Constants.MOVE;
 import pacman.game.Game;
 import pacman.game.Constants.DM;

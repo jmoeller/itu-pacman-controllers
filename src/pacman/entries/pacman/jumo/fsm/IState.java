@@ -1,4 +1,4 @@
-package pacman.entries.pacman.jumofsm;
+package pacman.entries.pacman.jumo.fsm;
 
 import pacman.game.Game;
 
