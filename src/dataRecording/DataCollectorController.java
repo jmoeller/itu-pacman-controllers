@@ -1,8 +1,6 @@
 package dataRecording;
 
 import pacman.controllers.*;
-import pacman.game.Constants.DM;
-import pacman.game.Constants.GHOST;
 import pacman.game.Game;
 import pacman.game.Constants.MOVE;
 
