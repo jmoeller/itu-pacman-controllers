@@ -156,6 +156,42 @@ public class DataTuple {
 		return stringbuilder.toString();
 	}
 
+	public double[] nnInputs() {
+		return new double[] {
+				normalizeDistance(blinkyDist),
+				normalizeDistance(inkyDist),
+				normalizeDistance(pinkyDist),
+				normalizeDistance(sueDist),
+
+				normalizeBoolean(isBlinkyEdible),
+				normalizeBoolean(isInkyEdible),
+				normalizeBoolean(isPinkyEdible),
+				normalizeBoolean(isSueEdible),
+				
+				normalizeCurrentScore(currentScore),
+				normalizeCurrentLevelTime(currentLevelTime),
+				normalizeTotalGameTime(totalGameTime),
+				
+				normalizeNumberOfPills(numOfPillsLeft),
+				normalizeNumberOfPowerPills(numOfPowerPillsLeft),
+		};
+	}
+	
+	public double[] nnExpectedOutput() {
+		if (DirectionChosen == MOVE.UP) {
+			return new double[] {1, 0, 0, 0};
+		}
+		else if (DirectionChosen == MOVE.RIGHT) {
+			return new double[] {0, 1, 0, 0};
+		}
+		else if (DirectionChosen == MOVE.DOWN) {
+			return new double[] {0, 0, 1, 0};
+		}
+		else { // LEFT
+			return new double[] {0, 0, 0, 1};
+		}
+	}
+	
 	/**
 	 * Used to normalize distances. Done via min-max normalization.
 	 * Supposes that minimum possible distance is 0. Supposes that

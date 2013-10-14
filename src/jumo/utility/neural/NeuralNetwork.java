@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 
+import dataRecording.DataTuple;
+
 public class NeuralNetwork {
 	private double[] inputs;
 	private double[] outputs;
@@ -17,10 +19,28 @@ public class NeuralNetwork {
 	private static Random r = new Random();
 	
 	private int numTotalNodes;
+	private int numInput;
+	private int numHidden;
+	private int numOutput;
 	
 	private int[] layerNumbers;
-	
+
 	public NeuralNetwork(int numInput, int numHidden, int numOutput) {
+		this(numInput, numHidden, numOutput, true);
+	}
+
+	public NeuralNetwork(int numInput, int numHidden, int numOutput, double[][] weights, double[] biases) {
+		this(numInput, numHidden, numOutput, false);
+		
+		this.weights = weights;
+		this.biases = biases;
+	}
+	
+	private NeuralNetwork(int numInput, int numHidden, int numOutput, boolean initWeightsAndBiases) {
+		this.numInput = numInput;
+		this.numHidden = numHidden;
+		this.numOutput = numOutput;
+		
 		numTotalNodes = numInput + numHidden + numOutput;
 		
 		layerNumbers = new int[] { numInput, numHidden, numOutput };
@@ -28,9 +48,12 @@ public class NeuralNetwork {
 		inputs = new double[numTotalNodes];
 		outputs = new double[numTotalNodes];
 		errors = new double[numTotalNodes];
-		weights = initializeWeights(numTotalNodes);
-		biases = initializeBiases(numTotalNodes);
 		outputDifferences = new double[numOutput];
+		
+		if (initWeightsAndBiases) {
+			weights = initializeWeights(numTotalNodes);
+			biases = initializeBiases(numTotalNodes);
+		}
 	}
 	
 	public double[] output() {
@@ -80,7 +103,7 @@ public class NeuralNetwork {
 		return r.nextDouble() * 2.0 - 1.0;
 	}
 	
-	public NeuralNetwork train(TrainingData[] tds, int maxIterations, int maxTimeSeconds, String errorLogFilename) {
+	public NeuralNetwork train(DataTuple[] tds, int maxIterations, int maxTimeSeconds, String errorLogFilename) {
 		int iteration = 1;
 		
 		ArrayList<Double> errors = new ArrayList<Double>();
@@ -91,11 +114,11 @@ public class NeuralNetwork {
 				iteration <= maxIterations &&
 				((new Date()).getTime() - startTime)/1000 < maxTimeSeconds
 				) {
-			double learningRate = 0.5; //1.0 / iteration;
+			double learningRate = 0.2; //1.0 / iteration;
 			
 			double accumulatedError = 0;
 			
-			for (TrainingData td : tds) {
+			for (DataTuple td : tds) {
 				this.trainSingle(td, learningRate);
 				
 				accumulatedError += this.averageError();
@@ -112,6 +135,12 @@ public class NeuralNetwork {
 		
 		return this;
 	}
+	
+	public double[][] weights() { return weights; }
+	public double[] biases() { return biases; }
+	public int numInput() { return numInput; }
+	public int numHidden() { return numHidden; }
+	public int numOutput() { return numOutput; }
 	
 	private static void SaveErrorLog(ArrayList<Double> errors, String filename) {
 		StringBuilder sb = new StringBuilder();
@@ -232,9 +261,9 @@ public class NeuralNetwork {
 		return this;
 	}
 	
-	private NeuralNetwork trainSingle(TrainingData td, double learningRate) {
-		this.forward(td.inputs);
-		this.backpropagate(td.expectedOutputs, learningRate);
+	private NeuralNetwork trainSingle(DataTuple td, double learningRate) {
+		this.forward(td.nnInputs());
+		this.backpropagate(td.nnExpectedOutput(), learningRate);
 		
 		return this;
 	}

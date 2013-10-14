@@ -1,0 +1,17 @@
+Monte Carlo Tree Search is a 'best first' way to get an estimate of the results of actions in a search space, where the space is too large to construct a full tree of actions and outcomes.
+
+It works by recursively selecting actions and playing out their outcomes based on random actions.
+One of the advantages of Monte Carlo Tree Search is that the algorithm can be terminated at any time, because the current best choice will always be known. Given infinite time, the outcome simulation will converge towards an optimal solution. For Pac-Man this is an advantage, because the allotted time can be fully utilized.
+
+My implementation uses the default policies (\emph{TreePolicy} and \emph{DefaultPolicy}) for expansion and playout. The implementation constructs a node for each possible move for Pac-Man. The moves are based on neighbouring, short moves Pac-Man has available to her at a given position.
+
+The \emph{DefaultPolicy} is modified a bit from completely random playout. Pac-Man is only allowed to go straight ahead when in corridors, except when a ghost has just been eaten or when a ghost is very near by. Otherwise, all direction changes take place at junctions. Pac-Man isn't allowed to go backwards at junctions either, to avoid the search space becoming larger than it already is.
+
+\subsection*{Problems and ways to improve}
+
+Because the nodes in the search tree is based on individual moves, Pac-Mans strategy becomes a micro-strategy and doesn't allow for Pac-Man to look properly ahead in the future. The first an best way to improve the implementation is to change the tree from being based on moves to being based on junctions like described in \cite{enhancements}. This would decrease the search space considerably, thus allowing Pac-Man to better plan her moves.
+
+Another good way to improve the implementation is to change the selection of
+child nodes to use a heurestic function instead of relying on randomness.
+
+When the "lowest hanging fruit" has been dealt with, strategies could be implemented, trying to handle specific situations such as pincer moves\footnote{When the ghosts are about to approach Pac-Man from all possible directions, thus trapping her.}, endgame situations with few pellets as well as other situations.

@@ -1,0 +1,44 @@
+The basis of the genetically evolved state machine controller (the SMC) is the division of labour into the following distinct states:
+
+\begin{itemize}
+\item Go to pill
+\item Go to powerpill
+\item Hunt ghosts
+\item Go to safest node
+\end{itemize}
+
+The states change the behaviour of Pac-Man. Based on the state of the game, a preferred state is chosen, and a move is performed based on the analysis made by the state controller.
+
+To determine which state should be used, all states implement a method which is used to find out if the state thinks it can handle the current game situation. The states also have a priority which changes the order in which the states are checked for validity.
+
+The behaviour states all contain a number of parameters. These are used both to determining if the state can handle the current game situation, but also when an appropriate move is calculated.
+
+The parameters used for the different states are:
+
+\begin{itemize}
+\item \textbf{Go to pill}: Priority, distance to nearest ghost, distance to nearest pill
+\item \textbf{Go to power pill}: Priority, minimum distance to nearest ghost,  maximum distance to nearest ghost, distance to nearest power pill
+\item \textbf{Hunt ghosts}: Priority, minimum remaining edible time, distance to nearest edible ghost
+\item \textbf{Go to safest node}: Priority
+\end{itemize}
+
+
+\subsection*{Evolution}
+
+Both the priority of the states as well as their individual parameters are evolved during an evolution experiment.
+
+The evolution of the parameters was performed by creating a population of 100 genomes. Each iteration these were evaluated. Of these, the 50 worst were eliminated. They were replaced with 20 entirely new genomes, 20 mutations of the best 20 genomes and 10 crossovers based on pairs from the 20 best genomes. 100 evolutions were run. The average score assigned to a genome was calculated based on the average of the previous iterations and the average of the newest iteration.
+
+The different numbers for how the population should be "split" were determined in part by trial and error. I started with a set of values, ran an experiment. Then I changed a value and ran the experiment again. If the average score went up I either kept the value or changed it more in the same direction. I did this a couple of times until it seemed as if the average score had stabilized.
+
+
+\subsection*{Problems and ways to improve}
+
+The controller was evolved against single opponents. This led to overfitting of the problem, witnessed by the fact that none of the evolved controllers were consistently good against all other controllers. They were too specialized with regards to the ghost behaviour.
+
+On top of that, the search space for the genome too large. Every part of the genome started in the range 0-200. For some of the
+parts of the genome this might not have been a sufficiently large range, whereas for others the range was too big. The result of this is that ranges of values for the genome parts might have been superfluous and a more efficient search could have been made.
+
+The states could perhaps also perhaps have been implemented so the result of the planning was a more long term strategy instead of a "greedy" short term approach.
+
+The parameters for the evolution itself (how a population should be composed) could have been found with a more rigorous approach instead of the one I used. The approach could perhaps even have been to run an automated search for optimal parameters, maybe even with running an evolution on the evolution parameters.

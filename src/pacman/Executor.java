@@ -6,11 +6,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import dataRecording.DataSaverLoader;
+import dataRecording.DataTuple;
 import pacman.controllers.Controller;
 import pacman.controllers.HumanController;
 import pacman.controllers.KeyBoardInput;
@@ -35,12 +39,13 @@ import pacman.controllers.examples.StarterGhosts;
 import pacman.controllers.examples.StarterPacMan;
 import jumo.fsm.JumoFSM;
 import jumo.mcts.JumoMCTS;
+import jumo.mlp.JumoMLP;
+import jumo.utility.neural.NeuralNetwork;
 import pacman.game.Game;
 import pacman.game.GameView;
 import pacman.game.Constants.GHOST;
 import pacman.game.Constants.MOVE;
 import pacman.game.internal.Ghost;
-
 import static pacman.game.Constants.*;
 
 /**
@@ -67,6 +72,12 @@ public class Executor
 		exec.runGameTimed(new DataCollectorController(new KeyBoardInput(), ghostController.getClass().getSimpleName() + ".txt"), ghostController,visual); 
 		//*/
 		
+		/*
+		// Train a NN
+		Controller<EnumMap<GHOST, MOVE>> ghostController = new StarterGhosts();
+		exec.trainNeuralNetwork(ghostController, 100000, 30);
+		//*/
+		
 		/* Run an evolution to find a genome for the FSM controller.
 		 */
 		/*
@@ -83,14 +94,18 @@ public class Executor
 		exec.runEvolution(new StarterGhosts(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
 		//*/
 		
-		/*
 		// Test the different controllers
-		int numTrials=1000;
-		Controller<EnumMap<GHOST,MOVE>> ghostsController = new Legacy2TheReckoning();
+		
+		//int numTrials=1000;
+		//Controller<EnumMap<GHOST,MOVE>> ghostsController = new Legacy2TheReckoning();
+		
 		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_STARTER_GHOSTS), ghostsController, numTrials);
 		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY), ghostsController, numTrials);
 		//exec.runExperiment(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING), ghostsController, numTrials);
+		
 		//exec.runExperiment(new StarterPacMan(),new StarterGhosts(), numTrials);
+		
+		//exec.runExperiment(new JumoMLP(), ghostsController, numTrials);
 
 		/*
 		double C = JumoMCTS.DEFAULT_C_VALUE;
@@ -113,13 +128,14 @@ public class Executor
 		exec.runGame(new RandomPacMan(),new RandomGhosts(),visual,delay);
   		//*/
 		
-		/*
+		//*
 		//run the game in asynchronous mode.
 		boolean visual=true;
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING),new Legacy2TheReckoning(),visual);
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY),new Legacy(),visual);
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_STARTER_GHOSTS),new StarterGhosts(),visual);
 		//exec.runGameTimed(new JumoMCTS(),new StarterGhosts(),visual);
+		exec.runGameTimed(new JumoMLP(),new StarterGhosts(),visual);
 		//*/
 		
 		/*
@@ -694,5 +710,41 @@ public class Executor
     	}
     	
     	return genome;
+    }
+
+    private void trainNeuralNetwork(Controller<EnumMap<GHOST,MOVE>> ghostController, int maxIterations, int maxSeconds) {
+    	
+    	String ghostType = ghostController.getClass().getSimpleName();
+    	DataTuple[] dts = DataSaverLoader.LoadPacManData(ghostType + ".txt");
+    	
+    	int numInput = dts[0].nnInputs().length;
+    	int numOutput = dts[0].nnExpectedOutput().length;
+    	int numHidden = numOutput + (numInput - numOutput) / 2; 
+    	
+    	NeuralNetwork nn = new NeuralNetwork(numInput, numHidden, numOutput);
+    	
+    	System.out.println(new Timestamp(new Date().getTime()));
+    	NeuralNetwork trained = nn.train(dts, maxIterations, maxSeconds, "myData/" + ghostType + "-nn-error.csv");
+    	System.out.println(new Timestamp(new Date().getTime()));
+    	
+    	System.out.println("double[][] weights = {");
+    	for (int i = 0; i < trained.weights().length; i++) {
+    		System.out.print("{ ");
+    		for (int j = 0; j < trained.weights()[i].length; j++) {
+    			System.out.print(trained.weights()[i][j] + ", ");
+    		}
+    		System.out.println(" },");
+    	}
+    	System.out.println("}");
+    	
+    	System.out.println("double[] biases = {");
+    	for (int i = 0; i < trained.biases().length; i++) {
+    		System.out.print(trained.biases()[i] + ", ");
+    	}
+    	System.out.println("}");
+
+    	System.out.println("int numInput = " + trained.numInput());
+    	System.out.println("int numHidden = " + trained.numHidden());
+    	System.out.println("int numOutput = " + trained.numOutput());
     }
 }
