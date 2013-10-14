@@ -33,8 +33,8 @@ import pacman.controllers.examples.RandomNonRevPacMan;
 import pacman.controllers.examples.RandomPacMan;
 import pacman.controllers.examples.StarterGhosts;
 import pacman.controllers.examples.StarterPacMan;
-import pacman.entries.pacman.jumo.fsm.JumoFSM;
-import pacman.entries.pacman.jumo.mcts.JumoMCTS;
+import jumo.fsm.JumoFSM;
+import jumo.mcts.JumoMCTS;
 import pacman.game.Game;
 import pacman.game.GameView;
 import pacman.game.Constants.GHOST;
@@ -61,6 +61,12 @@ public class Executor
 	{
 		Executor exec=new Executor();
 		
+		/*
+		// Get data for the MLP training
+		Controller<EnumMap<GHOST, MOVE>> ghostController = new Legacy2TheReckoning();
+		exec.runGameTimed(new DataCollectorController(new KeyBoardInput(), ghostController.getClass().getSimpleName() + ".txt"), ghostController,visual); 
+		//*/
+		
 		/* Run an evolution to find a genome for the FSM controller.
 		 */
 		/*
@@ -74,7 +80,7 @@ public class Executor
 		
 		//exec.runEvolution(new Legacy2TheReckoning(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
 		//exec.runEvolution(new Legacy(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
-		//exec.runEvolution(new StarterGhosts(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
+		exec.runEvolution(new StarterGhosts(), population_size, mutate_count, mutate_percentage, crossover_count, new_count, runs, games_per_run);
 		//*/
 		
 		/*
@@ -116,7 +122,7 @@ public class Executor
 		//exec.runGameTimed(new JumoMCTS(),new StarterGhosts(),visual);
 		//*/
 		
-		//*
+		/*
 		//run the game in asynchronous mode but advance as soon as both controllers are ready  - this is the mode of the competition.
 		//time limit of DELAY ms still applies.
 		boolean visual=true;
@@ -434,6 +440,8 @@ public class Executor
 
             	input=br.readLine();	
             }
+            
+            br.close();
         }
         catch(IOException ioe)
         {
@@ -545,7 +553,9 @@ public class Executor
         		{
         			try {
 						tasks.add(Executors.callable(new PacManTrial(s.genome, ghostController.getClass().newInstance())));
-					} catch (InstantiationException | IllegalAccessException e) {
+					} catch (InstantiationException e) {
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
 						e.printStackTrace();
 					}
         		}
