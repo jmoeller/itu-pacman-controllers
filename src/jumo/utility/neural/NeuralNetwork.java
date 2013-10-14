@@ -1,4 +1,4 @@
-package neural;
+package jumo.utility.neural;
 
 import java.io.IOException;
 import java.io.PrintWriter;

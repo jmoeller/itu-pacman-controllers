@@ -1,4 +1,4 @@
-package neural;
+package jumo.utility.neural;
 
 public class TrainingData {
 	public double[] inputs;
