@@ -130,12 +130,12 @@ public class Executor
 		
 		//*
 		//run the game in asynchronous mode.
-		boolean visual=true;
+		//boolean visual=true;
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY2_THERECKONING),new Legacy2TheReckoning(),visual);
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_LEGACY),new Legacy(),visual);
 		//exec.runGameTimed(new JumoFSM(JumoFSM.DEFAULT_GENOME_STARTER_GHOSTS),new StarterGhosts(),visual);
 		//exec.runGameTimed(new JumoMCTS(),new StarterGhosts(),visual);
-		exec.runGameTimed(new JumoMLP(),new StarterGhosts(),visual);
+		//exec.runGameTimed(new JumoMLP(),new StarterGhosts(),visual);
 		//*/
 		
 		/*
