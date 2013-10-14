@@ -9,6 +9,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Random;
+
+import dataRecording.DataCollectorController;
 import pacman.controllers.Controller;
 import pacman.controllers.HumanController;
 import pacman.controllers.KeyBoardInput;
@@ -24,7 +26,8 @@ import pacman.controllers.examples.StarterGhosts;
 import pacman.controllers.examples.StarterPacMan;
 import pacman.game.Game;
 import pacman.game.GameView;
-
+import pacman.game.Constants.GHOST;
+import pacman.game.Constants.MOVE;
 import static pacman.game.Constants.*;
 
 /**
@@ -61,8 +64,12 @@ public class Executor
 		///*
 		//run the game in asynchronous mode.
 		boolean visual=true;
+		
+		Controller<EnumMap<GHOST, MOVE>> ghostController = new Legacy2TheReckoning();
+		exec.runGameTimed(new DataCollectorController(new KeyBoardInput(), ghostController.getClass().getSimpleName() + ".txt"), ghostController,visual);
+		
 //		exec.runGameTimed(new NearestPillPacMan(),new AggressiveGhosts(),visual);
-		exec.runGameTimed(new StarterPacMan(),new StarterGhosts(),visual);
+//		exec.runGameTimed(new StarterPacMan(),new StarterGhosts(),visual);
 //		exec.runGameTimed(new HumanController(new KeyBoardInput()),new StarterGhosts(),visual);	
 		//*/
 		
@@ -381,6 +388,8 @@ public class Executor
 
             	input=br.readLine();	
             }
+            
+            br.close();
         }
         catch(IOException ioe)
         {

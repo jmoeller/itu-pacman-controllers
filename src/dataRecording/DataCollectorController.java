@@ -11,9 +11,12 @@ import pacman.game.Constants.MOVE;
  *
  */
 public class DataCollectorController extends HumanController{
+	private String filename;
 	
-	public DataCollectorController(KeyBoardInput input){
+	public DataCollectorController(KeyBoardInput input, String filename){
 		super(input);
+		
+		this.filename = filename;
 	}
 	
 	@Override
@@ -22,7 +25,7 @@ public class DataCollectorController extends HumanController{
 		
 		DataTuple data = new DataTuple(game, move);
 				
-		DataSaverLoader.SavePacManData(data);		
+		DataSaverLoader.SavePacManData(data, filename);		
 		return move;
 	}
 
