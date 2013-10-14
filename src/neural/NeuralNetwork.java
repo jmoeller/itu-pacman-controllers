@@ -2,13 +2,9 @@ package neural;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.SQLClientInfoException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
-
-import com.sun.media.jai.codec.FileSeekableStream;
 
 public class NeuralNetwork {
 	private double[] inputs;
@@ -250,82 +246,4 @@ public class NeuralNetwork {
 	private static double sigmoidDerivative(double x) {
 		return x * (1.0 - x);
 	}
-	
-	private static void printDoubles(double[] ds) {
-		for (double d : ds) {
-			System.out.print(d + "\t");
-		}
-		System.out.println();
-	}
-
-	public static void main(String[] args) {
-		NeuralNetwork nn = new NeuralNetwork(2, 2, 1);
-
-		TrainingData[] tdAnd = {
-				new TrainingData(new double[] {1, 1}, new double[] {1}),
-				new TrainingData(new double[] {1, 0}, new double[] {0}),
-				new TrainingData(new double[] {0, 1}, new double[] {0}),
-				new TrainingData(new double[] {0, 0}, new double[] {0}),
-		};
-		
-		TrainingData[] tdOr = {
-				new TrainingData(new double[] {1, 1}, new double[] {1}),
-				new TrainingData(new double[] {1, 0}, new double[] {1}),
-				new TrainingData(new double[] {0, 1}, new double[] {1}),
-				new TrainingData(new double[] {0, 0}, new double[] {0}),
-		};
-		
-		TrainingData[] tdXor = {
-				new TrainingData(new double[] {1, 1}, new double[] {0}),
-				new TrainingData(new double[] {1, 0}, new double[] {1}),
-				new TrainingData(new double[] {0, 1}, new double[] {1}),
-				new TrainingData(new double[] {0, 0}, new double[] {0}),
-		};
-		
-		TrainingData[] tdNor = {
-				new TrainingData(new double[] {1, 1}, new double[] {0}),
-				new TrainingData(new double[] {1, 0}, new double[] {0}),
-				new TrainingData(new double[] {0, 1}, new double[] {0}),
-				new TrainingData(new double[] {0, 0}, new double[] {1}),
-		};
-		
-		TrainingData[] tdFalse = {
-				new TrainingData(new double[] {1, 1}, new double[] {0}),
-				new TrainingData(new double[] {1, 0}, new double[] {0}),
-				new TrainingData(new double[] {0, 1}, new double[] {0}),
-				new TrainingData(new double[] {0, 0}, new double[] {0}),
-		};
-		
-		TrainingData[] tdTrue = {
-				new TrainingData(new double[] {1, 1}, new double[] {1}),
-				new TrainingData(new double[] {1, 0}, new double[] {1}),
-				new TrainingData(new double[] {0, 1}, new double[] {1}),
-				new TrainingData(new double[] {0, 0}, new double[] {1}),
-		};
-		
-		TrainingData[] tdNand = {
-				new TrainingData(new double[] {1, 1}, new double[] {0}),
-				new TrainingData(new double[] {1, 0}, new double[] {1}),
-				new TrainingData(new double[] {0, 1}, new double[] {1}),
-				new TrainingData(new double[] {0, 0}, new double[] {1}),
-		};
-		
-		TrainingData[] which = tdNand;
-
-		System.out.println(new Timestamp(new Date().getTime()));
-		NeuralNetwork trained = nn.train(which, 100000, 30, "error_rate.csv");
-		System.out.println(new Timestamp(new Date().getTime()));
-		
-		for (TrainingData td : which) {
-			trained.forward(td.inputs);
-			
-			System.out.print("Input: ");
-			printDoubles(td.inputs);
-			System.out.print("Expected output: ");
-			printDoubles(td.expectedOutputs);
-			System.out.print("Actual output: ");
-			printDoubles(trained.output());
-		}
-	}
-
 }
